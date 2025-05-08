@@ -31,6 +31,16 @@ async def insert_new_records(submissions: List[Interview]):
             await session.rollback()
             logger.error(f"Error during bulk insert: {str(e)}")
 
+async def get_existing_uuids() -> set:
+    """Retrieve existing UUIDs from the database.
+    Returns:
+        set: A set of existing UUIDs.
+    """
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Interview.uuid))
+        return {row[0] for row in result.fetchall()}
+
+
 async def get_records_count():
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(Interview).count())
