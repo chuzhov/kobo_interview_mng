@@ -41,7 +41,11 @@ async def get_existing_uuids() -> set:
         return {row[0] for row in result.fetchall()}
 
 
-async def get_records_count():
+async def get_records_count() -> int:
+    """Get the count of records in the Interview table.
+    Returns:
+        int: The count of records.
+    """
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(Interview).count())
         return result.scalar()
