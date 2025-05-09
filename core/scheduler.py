@@ -24,12 +24,11 @@ async def scheduled_job():
 #    else:
 #        logger.info(f"Fetched {len(fetched)} records from the external API.")
     
-    if saved_uuids:
+    if len(saved_uuids) > 0 and len(fetched) > 0:
         fetched = [r for r in fetched if r.uuid not in saved_uuids]
-    logger.info(f"New records to process: {len(fetched)}")
-
-    # TODO DEBUG!
-    fetched = fetched[:10] if DEBUG else fetched     # Limit to 10 records for testing
+    if len(fetched) == 0:
+        logger.info("No new records to process.")
+        return
 
     for record in fetched:
         if record.audit_URL:
@@ -51,12 +50,12 @@ def setup_jobs():
             id="debug_job",  # Unique ID for the job
             replace_existing = False  # Actually, this is the default behavior
         )
-        logger.info("Scheduler is running in DEBUG mode. Job is set to run every 5 minutes.")
+        logger.info(f"Scheduler is running in DEBUG mode. Job is set to run every {DEBUG_SCHEDULER_INTERVAL} minutes.")
     else:
         scheduler.add_job(
             scheduled_job,
             CronTrigger(
-                hour = f"{WORKING_HOURS["start"]}-{WORKING_HOURS["end"]}", 
+                hour = f'{WORKING_HOURS["start"]}-{WORKING_HOURS["end"]}', 
                 minute = 0,
             )  
         )
