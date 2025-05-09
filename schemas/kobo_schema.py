@@ -8,6 +8,7 @@ class FormSubmissionInterview(BaseModel):
     uuid: str = Field(..., alias="_uuid")
     enumerator_Id: str = Field(..., alias="metadata/enumerator_Id")  # Map API key directly to enumerator_Id
     audit_URL: Optional[str] = Field(None, alias="_attachments")  # Single filename or None
+    interview_duration: Optional[float] = Field(None)  # Duration in minutes, could be empty
 
     @field_validator('audit_URL', mode='before')
     @classmethod
@@ -25,7 +26,9 @@ class FormSubmissionInterview(BaseModel):
         # Optional: Allows population by field name (e.g., enumerator_Id) in addition to alias
         validate_by_name = True
 
-class InterviewDuration(BaseModel):
-    uuid: str
-    enumerator_Id: str
-    interview_duration: Optional[float] = Field(None) # Duration in minutes, could be empty
+
+def convert_model_to_dict_list(instances: List[BaseModel]) -> List[dict]:
+    if not isinstance(instances, list):
+        raise ValueError("Expected a list of BaseModel instances.")
+    
+    return [instance.model_dump() for instance in instances]
