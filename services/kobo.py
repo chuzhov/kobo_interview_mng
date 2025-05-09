@@ -21,10 +21,10 @@ API_HEADERS = {
     "Accept": "application/json"
 }
 
-async def fetch_int_list() -> List[schemas.FormSubmissionInterview]:
+async def fetch_int_list(headers: dict = API_HEADERS) -> List[schemas.FormSubmissionInterview]:
     """Fetch form submissions from external API."""
     try:
-        async with httpx.AsyncClient(auth=(API_TOKEN, "")) as client:
+        async with httpx.AsyncClient(headers=headers) as client:
             response = await client.get(FORM_SUBMISSIONS_API)
             response.raise_for_status()
             # Mock response parsing (adjust based on actual API response)
@@ -35,14 +35,15 @@ async def fetch_int_list() -> List[schemas.FormSubmissionInterview]:
         logger.error(f"Failed to fetch form submissions: {e}")
         return []
 
-async def get_int_duration(audit_url: str, headers: dict,
+async def get_int_duration(audit_url: str, 
+                           headers: dict = API_HEADERS,
                            node_start: str = "/aDYFXRVSK37D2AKJAS4AB9/group_introduction/a_1_first_interaction_note", 
                            node_end: str = "/aDYFXRVSK37D2AKJAS4AB9/group_main/group_interview_quality/interview_quality_note",
                            precision: int = 1) -> int|None:
     """Fetch audit file and calculate interview duration."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(url=audit_url, 
+            response = await client.get(url=AUDIT_URL + audit_url, 
                                         headers=headers)
             response.raise_for_status()
             csv_file = StringIO(response.text)
