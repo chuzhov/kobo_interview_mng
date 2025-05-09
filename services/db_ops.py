@@ -51,11 +51,15 @@ async def get_existing_uuids() -> set:
         return {row[0] for row in result.fetchall()}
 
 
+from sqlalchemy import func  # Add this import at the top of the file if not already present
+
 async def get_records_count() -> int:
     """Get the count of records in the Interview table.
     Returns:
         int: The count of records.
     """
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Interview).count())
+        result = await session.execute(
+            select(func.count())
+           .select_from(Interview))
         return result.scalar()
