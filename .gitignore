@@ -2,6 +2,7 @@
 .vscode/
 .github/
 .env
+.flake8
 __pycache__/
 log/
 logs/

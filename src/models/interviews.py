@@ -1,6 +1,8 @@
 # models/record.py
-from sqlalchemy import Column, String, Float
+from sqlalchemy import Column, Float, String
+
 from core.database import Base
+
 
 class Interview(Base):
     __tablename__ = "intervies"

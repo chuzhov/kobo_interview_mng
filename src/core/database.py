@@ -1,12 +1,14 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
-from .config import DATABASE_URL
 from services.logger import logger
+
+from .config import DATABASE_URL
 
 engine = create_async_engine(DATABASE_URL, echo=False, future=True)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 Base = declarative_base()
+
 
 async def init_db():
     try:
@@ -17,4 +19,3 @@ async def init_db():
         # Use run_sync to execute the synchronous create_all method in an async context
         await conn.run_sync(Base.metadata.create_all)
         logger.critical(f"An error occurred during database initialization: {e}")
-

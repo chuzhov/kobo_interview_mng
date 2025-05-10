@@ -10,10 +10,10 @@ DB_PATH = "db/interviews.db"
 DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
 # Scheduler settings
-TIMEZONE = "Europe/Kyiv"  
+TIMEZONE = "Europe/Kyiv"
 WORKING_HOURS = {
     "start": 7,  # 7 AM
-    "end": 22,   # 10 PM
+    "end": 22,  # 10 PM
 }
 
 # FastAPI server settings
