@@ -13,7 +13,7 @@ def setup_logger(service_name: str) -> logging.Logger:
             os.makedirs('log')
         
         # Create a custom logger with a fixed name
-        _logger = logging.getLogger(f"kobo_{service_name}")
+        _logger = logging.getLogger(service_name)
         _logger.setLevel(logging.INFO)
         
         # Create handlers
