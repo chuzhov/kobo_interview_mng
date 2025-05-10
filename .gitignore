@@ -1,4 +1,6 @@
 .venv/
+.vscode/
+.github/
 .env
 __pycache__/
 log/
