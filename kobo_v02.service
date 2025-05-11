@@ -1,0 +1,21 @@
+# sudo nano /etc/systemd/system/kobo_v02.service
+
+[Unit]
+Description=FastAPI application service
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/kobo_interview_mng
+Environment="PATH=/home/ubuntu/kobo_interview_mng/fastapi-env/bin"
+Environment="PYTHONPATH=/home/ubuntu/kobo_interview_mng:/home/ubuntu/kobo_interview_mng/src"
+EnvironmentFile=/home/ubuntu/kobo_interview_mng/.env
+ExecStart=/home/ubuntu/kobo_interview_mng/fastapi-env/bin/uvicorn src.main:app --host 0.0.0.0 --port 8000
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
