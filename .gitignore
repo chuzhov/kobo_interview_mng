@@ -1,6 +1,6 @@
 .venv/
 .vscode/
-.github/
+.github/prompts/
 .env
 .flake8
 __pycache__/
