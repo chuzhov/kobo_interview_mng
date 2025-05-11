@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, TypeVar
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -22,6 +22,7 @@ class FormSubmissionInterview(BaseModel):
     @classmethod
     def extract_filename(cls, value):
         """Extract filename from the first attachment dictionary, or return None."""
+        
         if not isinstance(value, list) or not value:
             return None
         first_item = value[0]
@@ -34,8 +35,12 @@ class FormSubmissionInterview(BaseModel):
         # Optional: Allows population by field name (e.g., enumerator_Id) in addition to alias
         validate_by_name = True
 
+# Define a generic type bound to BaseModel
+T = TypeVar("T", bound=BaseModel)
 
-def convert_model_to_dict_list(instances: List[BaseModel]) -> List[dict]:
+def convert_model_to_dict_list(instances: List[T]) -> List[dict]:
+    """Convert a list of BaseModel instances to a list of dictionaries."""
+
     if not isinstance(instances, list):
         raise ValueError("Expected a list of BaseModel instances.")
 

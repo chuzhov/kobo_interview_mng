@@ -3,11 +3,15 @@ import csv
 import os
 from io import StringIO
 from typing import List
+from dotenv import load_dotenv
 
 import httpx
 
 import schemas.kobo_schema as schemas
 from services.logger import logger
+
+
+load_dotenv()
 
 KOBO_SERVER = os.getenv("KOBO_SERVER")
 API_TOKEN = os.getenv("API_TOKEN")
@@ -43,7 +47,7 @@ async def get_int_duration(
     node_start: str = "/aDYFXRVSK37D2AKJAS4AB9/group_introduction/a_1_first_interaction_note",
     node_end: str = "/aDYFXRVSK37D2AKJAS4AB9/group_main/group_interview_quality/interview_quality_note",
     precision: int = 1,
-) -> int | None:
+) -> float | None:
     """Fetch audit file and calculate interview duration."""
     try:
         async with httpx.AsyncClient() as client:
@@ -60,11 +64,11 @@ async def get_int_duration(
                 start_ts = int(row["start"])
             elif row["node"] == node_end:
                 end_ts = int(row["end"])
-
+                break
         if start_ts is not None and end_ts is not None:
             return round((end_ts - start_ts) / (1000 * 60), precision)
         else:
-            None
+            return None
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
             logger.error(f"Audit file not found at {audit_url}")

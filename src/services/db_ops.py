@@ -52,7 +52,7 @@ async def get_existing_uuids() -> set:
         return {row[0] for row in result.fetchall()}
 
 
-async def get_records_count() -> int:
+async def get_records_count() -> int|None:
     """Get the count of records in the Interview table.
     Returns:
         int: The count of records.
