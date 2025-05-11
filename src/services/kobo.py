@@ -2,7 +2,7 @@
 import csv
 import os
 from io import StringIO
-from typing import List
+from typing import List, Dict, Optional
 from dotenv import load_dotenv
 
 import httpx
@@ -39,6 +39,70 @@ async def fetch_int_list(
     except httpx.HTTPError as e:
         logger.error(f"Failed to fetch form submissions: {e}")
         return []
+    
+
+
+
+async def fetch_audit_file(audit_url: str, headers: dict) -> Optional[List[Dict[str, str]]]:
+    """Fetch the audit file from the given URL and return parsed CSV data.
+
+    Args:
+        audit_url: The URL of the audit file.
+        headers: HTTP headers for the request.
+
+    Returns:
+        A list of dictionaries representing the rows in the CSV file, or None if an error occurs.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url=audit_url, headers=headers)
+            response.raise_for_status()
+            csv_file = StringIO(response.text)
+            return list(csv.DictReader(csv_file))
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            logger.error(f"Audit file not found at {audit_url}")
+        else:
+            logger.error(
+                f"HTTP error occurred while fetching audit data for {audit_url}: {e}"
+            )
+    except httpx.HTTPError as e:
+        logger.error(f"Failed to fetch audit file from {audit_url}: {e}")
+    return None
+
+
+def calculate_duration(
+    csv_data: List[Dict[str, str]],
+    node_start: str,
+    node_end: str,
+    precision: int = 1,
+) -> Optional[float]:
+    """Calculate the interview duration from the parsed CSV data.
+
+    Args:
+        csv_data: A list of dictionaries representing the rows in the CSV file.
+        node_start: The node indicating the start of the interview.
+        node_end: The node indicating the end of the interview.
+        precision: The number of decimal places for the result.
+
+    Returns:
+        The calculated duration in minutes, or None if the calculation cannot be performed.
+    """
+    start_ts = None
+    end_ts = None
+
+    for row in csv_data:
+        if row["node"] == node_start and start_ts is None:
+            start_ts = int(row["start"])
+        elif row["node"] == node_end:
+            end_ts = int(row["end"])
+            break
+
+    if start_ts is not None and end_ts is not None:
+        return round((end_ts - start_ts) / (1000 * 60), precision)
+    else:
+        logger.warning("Start or end timestamp not found in the CSV data.")
+        return None
 
 
 async def get_int_duration(
@@ -47,37 +111,20 @@ async def get_int_duration(
     node_start: str = "/aDYFXRVSK37D2AKJAS4AB9/group_introduction/a_1_first_interaction_note",
     node_end: str = "/aDYFXRVSK37D2AKJAS4AB9/group_main/group_interview_quality/interview_quality_note",
     precision: int = 1,
-) -> float | None:
-    """Fetch audit file and calculate interview duration."""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url=AUDIT_URL + audit_url, headers=headers)
-            response.raise_for_status()
-            csv_file = StringIO(response.text)
+) -> Optional[float]:
+    """Fetch audit file and calculate interview duration.
 
-        start_ts = None
-        end_ts = None
+    Args:
+        audit_url: The URL of the audit file.
+        headers: HTTP headers for the request.
+        node_start: The node indicating the start of the interview.
+        node_end: The node indicating the end of the interview.
+        precision: The number of decimal places for the result.
 
-        reader = csv.DictReader(csv_file)
-        for row in reader:
-            if row["node"] == node_start and start_ts is None:
-                start_ts = int(row["start"])
-            elif row["node"] == node_end:
-                end_ts = int(row["end"])
-                break
-        if start_ts is not None and end_ts is not None:
-            return round((end_ts - start_ts) / (1000 * 60), precision)
-        else:
-            return None
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            logger.error(f"Audit file not found at {audit_url}")
-            return None
-        else:
-            logger.error(
-                f"HTTP error occurred while fetching audit data for {audit_url}: {e}"
-            )
-            return None
-    except (httpx.HTTPError, ValueError) as e:
-        logger.error(f"Failed to fetch or process audit data for {audit_url}: {e}")
-        return None
+    Returns:
+        The calculated duration in minutes, or None if an error occurs.
+    """
+    csv_data = await fetch_audit_file(AUDIT_URL + audit_url, headers)
+    if csv_data is not None:
+        return calculate_duration(csv_data, node_start, node_end, precision)
+    return None
