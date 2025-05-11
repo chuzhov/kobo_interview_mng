@@ -60,7 +60,9 @@ async def log_requests(
     end_time = datetime.now()
     execution_time = (end_time - start_time).total_seconds()
     logger.info(
-        f" {request.method} {request.url.path} {response.status_code} Duration: {execution_time:.3f}s"  # noqa
+        f"Request: {request.method} {request.url.path} {response.status_code} " +
+        f"from {request.client.host if request.client else 'unknown'} " +
+        f"duration: {execution_time:.3f}s" 
     )
     return response
 
