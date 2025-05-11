@@ -4,6 +4,8 @@
 .env
 .flake8
 __pycache__/
+pytest_cache/
+*.egg-info/
 log/
 logs/
 *.py[cod]
