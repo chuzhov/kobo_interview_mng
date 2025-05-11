@@ -14,3 +14,7 @@ This project is a FastAPI-based application designed to manage and log interview
 - **Modular Design**: Organized into reusable modules for scalability.
 
 ---
+
+## Endpoints Description
+
+The API provides the following endpoints:
