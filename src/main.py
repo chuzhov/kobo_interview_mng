@@ -3,8 +3,11 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator, Awaitable, Callable
 
-from fastapi import FastAPI, Request, Response
+import httpx
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 
 from core.config import PORT
 from core.database import init_db
@@ -65,6 +68,44 @@ async def log_requests(
         f"duration: {execution_time:.3f}s" 
     )
     return response
+
+
+# Specific handler for HTTPException (optional, but good practice)
+# This will catch FastAPI's own HTTPException and handle it before the generic Exception handler.
+@app.exception_handler(httpx.HTTPStatusError)
+async def http_exception_handler(request: Request, exc: httpx.HTTPStatusError) -> JSONResponse:
+    """Handle HTTP exceptions raised by httpx.
+
+    Args:
+        request: The incoming HTTP request.
+        exc: The HTTPStatusError exception raised by httpx.
+
+    Returns:
+        A JSONResponse with the error details and appropriate status code.
+    """
+    logger.warning(
+        f"HTTP Exception: {exc.response.status_code} - {exc.response.text} for URL: {request.url}"
+    )
+    return JSONResponse(
+        status_code=exc.response.status_code,
+        content={"message": exc.response.text},
+    )
+
+# The "last hope" exception catcher
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """
+    This handler catches any unhandled exceptions that are not
+    caught by more specific exception handlers.
+    """
+    # Log the full traceback for debugging purposes (critical for production)
+    logger.exception(f"Unhandled Exception for URL: {request.url} - {exc}")
+
+    # Return a generic error message to the client for security
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"message": "An unexpected error occurred. Please try again later."},
+    )
 
 
 if __name__ == "__main__":
