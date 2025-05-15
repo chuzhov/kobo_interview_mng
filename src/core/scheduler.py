@@ -13,7 +13,6 @@ from services.logger import logger
 async def scheduled_job__Get_interview_duration():
     logger.info("Scheduled job started.")
 
-    await fetch_submissions()
 
     saved_uuids = await get_existing_uuids()
     if saved_uuids:
