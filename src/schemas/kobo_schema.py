@@ -35,6 +35,12 @@ class FormSubmissionInterview(BaseModel):
         # Optional: Allows population by field name (e.g., enumerator_Id) in addition to alias
         validate_by_name = True
 
+
+class DynamicSchema(BaseModel):
+    class Config:
+        extra = "allow"  # Allow arbitrary fields
+        
+
 # Define a generic type bound to BaseModel
 T = TypeVar("T", bound=BaseModel)
 
