@@ -1,8 +1,10 @@
 # services/external.py
 import csv
 import os
+import json
 from io import StringIO
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, TypeVar, Type, Any
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 import httpx
@@ -13,34 +15,90 @@ from services.logger import logger
 
 load_dotenv()
 
-KOBO_SERVER = os.getenv("KOBO_SERVER")
-API_TOKEN = os.getenv("API_TOKEN")
-FORM_UID = os.getenv("FORM_UID")
+KOBO_SERVER = os.getenv("KOBO_SERVER", default="")
+API_TOKEN = os.getenv("API_TOKEN", default="")
+FORM_UID = os.getenv("FORM_UID", default="")
 
-FORM_SUBMISSIONS_API = f"{KOBO_SERVER}/api/v2/assets/{FORM_UID}/data/?fields=%5B%22metadata/enumerator_Id%22%2C%20%22_attachments%22%5D&format=json"
-AUDIT_API = "https://api.example.com/audit/"
+if not KOBO_SERVER or not API_TOKEN or not FORM_UID:
+    logger.critical(
+        "KOBO_SERVER, API_TOKEN, and FORM_UID must be set in the environment variables.")
+
+#FORM_SUBMISSIONS_API = f"{KOBO_SERVER}/api/v2/assets/{FORM_UID}/data/?fields=%5B%22metadata/enumerator_Id%22%2C%20%22_attachments%22%5D&format=json"
+
 AUDIT_URL = "https://kobocat.unhcr.org/media/original?media_file="
 
 API_HEADERS = {"Authorization": f"Token {API_TOKEN}", "Accept": "application/json"}
 
 
-async def fetch_int_list(
+async def fetch_submissions(
+    kobo_server_url: str = KOBO_SERVER,
+    form_id: str = FORM_UID,
     headers: dict = API_HEADERS,
-) -> List[schemas.FormSubmissionInterview]:
-    """Fetch form submissions from external API."""
-    try:
+    
+    params: Optional[Dict[str, str]] = None,
+) -> list[Dict[str, Any]]:
+    """Fetch all form submissions from external API and parse them into the given schema.
+
+    """
+    try:    
+        url = f"{kobo_server_url}/api/v2/assets/{form_id}/data/"
+        
         async with httpx.AsyncClient(headers=headers) as client:
-            response = await client.get(FORM_SUBMISSIONS_API)
+            response = await client.get(url, params=params)
             response.raise_for_status()
-            # Mock response parsing (adjust based on actual API response)
-            results = response.json().get("results", [])
-            logger.info(f"Fetched {len(results)} form submissions")
-            return [schemas.FormSubmissionInterview(**item) for item in results]
+            count, _, __, results = response.json().values()
+            logger.info(f"Fetched {count} form submissions")
+            # Parse the results into the given schema
+            return results
     except httpx.HTTPError as e:
         logger.error(f"Failed to fetch form submissions: {e}")
         return []
-    
 
+# Define a generic type bound to BaseModel
+T = TypeVar("T", bound=BaseModel)
+
+async def fetch_kobo_data(
+    schema: Type[T],
+    fields: List[str],
+    kobo_server_url: str = KOBO_SERVER,
+    form_id: str = FORM_UID,
+    headers: dict = API_HEADERS,
+    
+    params: Optional[Dict[str, str]] = None,
+) -> List[T]:
+    """Fetch form submissions from external API and parse them into the given schema.
+
+    Args:
+        schema: The Pydantic model to parse the API response into.
+        fields: list of fields to include in the response.
+        kobo_server_url: The base URL of the Kobo server.
+        form_id: The ID of the form to fetch data for.
+        headers: HTTP headers for the request.  
+        params: Additional query parameters for the request.
+
+    Returns:
+        A list of instances of the given schema.
+    """
+    try:    
+        url = f"{kobo_server_url}/api/v2/assets/{form_id}/data/"
+        if not params:
+            params = {"format": "json"}
+        
+        if isinstance(fields, list):
+            if params is None: # the linter to not complain about the params being None
+                params = {}
+            params["fields"] = json.dumps(fields) 
+
+        async with httpx.AsyncClient(headers=headers) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            results = response.json().get("results", [])
+            logger.info(f"Fetched {len(results)} form submissions")
+            # Parse the results into the given schema
+            return [schema(**item) for item in results]
+    except httpx.HTTPError as e:
+        logger.error(f"Failed to fetch form submissions: {e}")
+        return []
 
 
 async def fetch_audit_file(audit_url: str, headers: dict) -> Optional[List[Dict[str, str]]]:
@@ -69,7 +127,6 @@ async def fetch_audit_file(audit_url: str, headers: dict) -> Optional[List[Dict[
     except httpx.HTTPError as e:
         logger.error(f"Failed to fetch audit file from {audit_url}: {e}")
     return None
-
 
 def calculate_duration(
     csv_data: List[Dict[str, str]],
